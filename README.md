@@ -6,18 +6,18 @@
 2. 下载 `resources.zip`（见下方资源下载）并解压
 3. 将解压后的文件夹 `resources` 放在项目文件夹根目录，使项目文件结构为：
 
-```text
-OCauto/
-├── main.py                 # 主程序
-├── resources/              # 资源文件夹
-│   ├── thirdparty/         # Octane缓存文件夹
-│   ├── c4doctane/          # C4D插件文件夹
-│   ├── license             # Octane许可证文件
-│   ├── otoy_credentials    # Octane凭证文件
-│   ├── YellowStar.exe      # 启动项程序
-│   └── YellowStar.xdl64    # C4D插件文件
-└── README.md               # 项目说明文件
-```
+    ```text
+    OCauto/
+    ├── main.py                 # 主程序
+    ├── resources/              # 资源文件夹
+    │   ├── thirdparty/         # Octane缓存文件夹
+    │   ├── c4doctane/          # C4D插件文件夹
+    │   ├── license             # Octane许可证文件
+    │   ├── otoy_credentials    # Octane凭证文件
+    │   ├── YellowStar.exe      # 启动项程序
+    │   └── YellowStar.xdl64    # C4D插件文件
+    └── README.md               # 项目说明文件
+    ```
 
 4. 运行 `main.py` 进行安装。
 

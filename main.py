@@ -1,5 +1,6 @@
 import os
 import shutil
+import subprocess
 
 def clear_folder(folder_path, folder_name):
     """清理指定文件夹的内容"""
@@ -131,6 +132,27 @@ def ensure_resource_folder():
         print(f"处理资源文件夹时发生错误: {str(e)}")
         return False
 
+def run_yellowstar():
+    """运行 YellowStar.exe"""
+    try:
+        # 获取 YellowStar.exe 的路径（从资源文件夹）
+        resource_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "resources")
+        exe_path = os.path.join(resource_dir, "YellowStar.exe")
+        
+        if not os.path.exists(exe_path):
+            print("错误：未找到 YellowStar.exe")
+            return False
+            
+        print("\n正在启动 YellowStar.exe...")
+        # 使用 subprocess 运行程序
+        subprocess.Popen(exe_path)
+        print("YellowStar.exe 已启动")
+        return True
+        
+    except Exception as e:
+        print(f"启动 YellowStar.exe 时发生错误: {str(e)}")
+        return False
+
 def clear_and_copy():
     try:
         # 确保资源文件夹结构正确
@@ -183,6 +205,10 @@ def clear_and_copy():
             print("警告：未找到 YellowStar.exe")
             return False
             
+        # 在所有操作成功完成后运行 YellowStar.exe
+        if not run_yellowstar():
+            return False
+            
         return True
         
     except Exception as e:
@@ -200,6 +226,7 @@ def main():
     print("7. 复制 c4doctane 文件夹到 C4D插件目录")
     print("8. 复制 YellowStar.xdl64 到 C4D插件目录")
     print("9. 检查并设置启动项")
+    print("10. 运行 YellowStar.exe")
     
     # 添加确认提示
     confirm = input("\n确定要执行以上操作吗？(y/n): ")
