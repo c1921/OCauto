@@ -31,6 +31,7 @@ ENV/
 .cache
 *.cover
 *.log
+logs
 
 # Distribution / packaging
 .Python
