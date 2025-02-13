@@ -19,7 +19,14 @@
     └── README.md               # 项目说明文件
     ```
 
-4. 运行 `main.py` 进行安装。
+4. 安装项目依赖
+
+   ```bash
+        pip install -r requirements.txt
+   ```
+
+5. 检查 `config.py` 中的路径是否正确
+6. 运行 `main.py` 进行安装
 
 ## 资源下载
 
