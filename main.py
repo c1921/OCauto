@@ -1,250 +1,293 @@
 import os
 import shutil
 import subprocess
+import logging
+from datetime import datetime
+from config import *
+from tqdm import tqdm
 
-def clear_folder(folder_path, folder_name):
-    """清理指定文件夹的内容"""
-    try:
-        if not os.path.exists(folder_path):
-            print(f"{folder_name}不存在！")
-            return False
-            
-        for item in os.listdir(folder_path):
-            item_path = os.path.join(folder_path, item)
-            try:
-                if os.path.isfile(item_path):
-                    os.remove(item_path)
-                elif os.path.isdir(item_path):
-                    shutil.rmtree(item_path)
-                print(f"已删除: {item}")
-            except Exception as e:
-                print(f"删除 {item} 时出错: {str(e)}")
+# 设置日志
+def setup_logging():
+    log_dir = os.path.join(BASE_DIR, "logs")
+    if not os.path.exists(log_dir):
+        os.makedirs(log_dir)
+    
+    log_file = os.path.join(log_dir, f"yellowstar_{datetime.now().strftime('%Y%m%d_%H%M%S')}.log")
+    logging.basicConfig(
+        level=logging.INFO,
+        format='%(asctime)s - %(levelname)s - %(message)s',
+        handlers=[
+            logging.FileHandler(log_file, encoding='utf-8'),
+            logging.StreamHandler()
+        ]
+    )
+
+class YellowStarInstaller:
+    def __init__(self):
+        setup_logging()
+        self.logger = logging.getLogger(__name__)
+
+    def clear_folder(self, folder_path, folder_name):
+        """清理指定文件夹的内容"""
+        try:
+            if not os.path.exists(folder_path):
+                self.logger.warning(f"{folder_name}不存在！")
                 return False
                 
-        print(f"{folder_name}清理完成！")
-        return True
-        
-    except Exception as e:
-        print(f"处理{folder_name}时发生错误: {str(e)}")
-        return False
-
-def copy_items(source, target, is_folder=False):
-    """复制文件或文件夹到目标目录"""
-    try:
-        if not os.path.exists(source):
-            print(f"源路径 {source} 不存在！")
-            return False
-        
-        if not os.path.exists(target):
-            os.makedirs(target)
-            print(f"已创建目标目录: {target}")
-        
-        if is_folder:
-            target_path = os.path.join(target, os.path.basename(source))
-            shutil.copytree(source, target_path)
-        else:
-            shutil.copy2(source, target)
-        
-        print(f"已成功复制: {os.path.basename(source)}")
-        return True
-        
-    except Exception as e:
-        print(f"复制过程中发生错误: {str(e)}")
-        return False
-
-def check_and_copy_startup():
-    """检查并复制启动项文件"""
-    startup_dir = r"C:\ProgramData\Microsoft\Windows\Start Menu\Programs\Startup"
-    startup_file = "YellowStar.exe"
-    startup_path = os.path.join(startup_dir, startup_file)
-    
-    try:
-        # 检查启动项文件是否存在
-        if not os.path.exists(startup_path):
-            print(f"\n未检测到启动项 {startup_file}，准备复制...")
-            
-            # 获取源文件路径（当前目录下的YellowStar.exe）
-            source_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), startup_file)
-            
-            if os.path.exists(source_path):
-                shutil.copy2(source_path, startup_path)
-                print(f"已成功将 {startup_file} 复制到启动项目录")
-            else:
-                print(f"错误：源文件 {startup_file} 不存在！")
-                return False
-        else:
-            print(f"\n启动项 {startup_file} 已存在")
-        return True
-        
-    except Exception as e:
-        print(f"处理启动项时发生错误: {str(e)}")
-        return False
-
-def ensure_resource_folder():
-    """确保资源文件夹存在并包含所需文件"""
-    try:
-        # 获取当前脚本所在目录
-        current_dir = os.path.dirname(os.path.abspath(__file__))
-        resource_dir = os.path.join(current_dir, "resources")
-        
-        # 如果资源文件夹不存在，创建它
-        if not os.path.exists(resource_dir):
-            os.makedirs(resource_dir)
-            print("已创建资源文件夹")
-        
-        # 需要移动的文件和文件夹列表
-        items_to_move = [
-            ("thirdparty", True),
-            ("c4doctane", True),
-            ("license", False),
-            ("otoy_credentials", False),
-            ("YellowStar.exe", False),
-            ("YellowStar.xdl64", False)
-        ]
-        
-        # 移动文件到资源文件夹
-        for item_name, is_folder in items_to_move:
-            source = os.path.join(current_dir, item_name)
-            target = os.path.join(resource_dir, item_name)
-            
-            # 检查源文件/文件夹是否存在
-            if os.path.exists(source):
+            items = os.listdir(folder_path)
+            for item in tqdm(items, desc=f"清理{folder_name}"):
+                item_path = os.path.join(folder_path, item)
                 try:
-                    # 如果目标已存在，先删除
-                    if os.path.exists(target):
-                        if is_folder:
-                            shutil.rmtree(target)
-                        else:
-                            os.remove(target)
-                    
-                    # 移动文件/文件夹
-                    shutil.move(source, target)
-                    print(f"已移动 {item_name} 到资源文件夹")
+                    if os.path.isfile(item_path):
+                        os.remove(item_path)
+                    elif os.path.isdir(item_path):
+                        shutil.rmtree(item_path)
                 except Exception as e:
-                    print(f"移动 {item_name} 时出错: {str(e)}")
+                    self.logger.error(f"删除 {item} 时出错: {str(e)}")
+                    return False
+                    
+            self.logger.info(f"{folder_name}清理完成！")
+            return True
+            
+        except Exception as e:
+            self.logger.error(f"处理{folder_name}时发生错误: {str(e)}")
+            return False
+
+    def copy_items(self, source, target, is_folder=False):
+        """复制文件或文件夹到目标目录"""
+        try:
+            if not os.path.exists(source):
+                self.logger.error(f"源路径 {source} 不存在！")
+                return False
+            
+            if not os.path.exists(target):
+                os.makedirs(target)
+                self.logger.info(f"已创建目标目录: {target}")
+            
+            if is_folder:
+                # 获取源文件夹中的所有文件和总大小
+                total_size = 0
+                file_list = []
+                for root, _, files in os.walk(source):
+                    for file in files:
+                        file_path = os.path.join(root, file)
+                        file_size = os.path.getsize(file_path)
+                        total_size += file_size
+                        file_list.append((file_path, file_size))
+                
+                # 使用进度条显示复制进度
+                with tqdm(total=total_size, unit='B', unit_scale=True, 
+                         desc=f"复制 {os.path.basename(source)}", 
+                         postfix={"文件数": len(file_list)}) as pbar:
+                    def copy_with_progress(src, dst, file_list):
+                        if not os.path.exists(dst):
+                            os.makedirs(dst)
+                        for src_path, file_size in file_list:
+                            rel_path = os.path.relpath(src_path, src)
+                            dst_path = os.path.join(dst, rel_path)
+                            # 确保目标文件夹存在
+                            os.makedirs(os.path.dirname(dst_path), exist_ok=True)
+                            # 使用缓冲区复制文件
+                            buffer_size = 1024 * 1024  # 1MB buffer
+                            with open(src_path, 'rb') as fsrc:
+                                with open(dst_path, 'wb') as fdst:
+                                    while True:
+                                        buffer = fsrc.read(buffer_size)
+                                        if not buffer:
+                                            break
+                                        fdst.write(buffer)
+                                        pbar.update(len(buffer))
+                    
+                    target_path = os.path.join(target, os.path.basename(source))
+                    copy_with_progress(source, target_path, file_list)
+            else:
+                # 单个文件复制时显示进度条
+                file_size = os.path.getsize(source)
+                with tqdm(total=file_size, unit='B', unit_scale=True, 
+                         desc=f"复制 {os.path.basename(source)}") as pbar:
+                    buffer_size = 1024 * 1024  # 1MB buffer
+                    with open(source, 'rb') as fsrc:
+                        with open(os.path.join(target, os.path.basename(source)), 'wb') as fdst:
+                            while True:
+                                buffer = fsrc.read(buffer_size)
+                                if not buffer:
+                                    break
+                                fdst.write(buffer)
+                                pbar.update(len(buffer))
+            
+            self.logger.info(f"已成功复制: {os.path.basename(source)}")
+            return True
+            
+        except Exception as e:
+            self.logger.error(f"复制过程中发生错误: {str(e)}")
+            return False
+
+    def check_and_copy_startup(self):
+        """检查并复制启动项文件"""
+        startup_dir = r"C:\ProgramData\Microsoft\Windows\Start Menu\Programs\Startup"
+        startup_file = "YellowStar.exe"
+        startup_path = os.path.join(startup_dir, startup_file)
+        
+        try:
+            # 检查启动项文件是否存在
+            if not os.path.exists(startup_path):
+                self.logger.warning(f"\n未检测到启动项 {startup_file}，准备复制...")
+                
+                # 获取源文件路径（当前目录下的YellowStar.exe）
+                source_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), startup_file)
+                
+                if os.path.exists(source_path):
+                    shutil.copy2(source_path, startup_path)
+                    self.logger.info(f"已成功将 {startup_file} 复制到启动项目录")
+                else:
+                    self.logger.error(f"错误：源文件 {startup_file} 不存在！")
                     return False
             else:
-                print(f"警告：{item_name} 不存在于根目录")
-        
-        return True
-        
-    except Exception as e:
-        print(f"处理资源文件夹时发生错误: {str(e)}")
-        return False
+                self.logger.info(f"\n启动项 {startup_file} 已存在")
+            return True
+            
+        except Exception as e:
+            self.logger.error(f"处理启动项时发生错误: {str(e)}")
+            return False
 
-def run_yellowstar():
-    """运行 YellowStar.exe"""
-    try:
-        # 获取 YellowStar.exe 的路径（从资源文件夹）
-        resource_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "resources")
-        exe_path = os.path.join(resource_dir, "YellowStar.exe")
-        
-        if not os.path.exists(exe_path):
-            print("错误：未找到 YellowStar.exe")
-            return False
+    def ensure_resource_folder(self):
+        """确保资源文件夹存在并包含所需文件"""
+        try:
+            # 获取当前脚本所在目录
+            current_dir = os.path.dirname(os.path.abspath(__file__))
+            resource_dir = os.path.join(current_dir, "resources")
             
-        print("\n正在启动 YellowStar.exe...")
-        # 使用 subprocess 运行程序
-        subprocess.Popen(exe_path)
-        print("YellowStar.exe 已启动")
-        return True
-        
-    except Exception as e:
-        print(f"启动 YellowStar.exe 时发生错误: {str(e)}")
-        return False
+            # 如果资源文件夹不存在，创建它
+            if not os.path.exists(resource_dir):
+                os.makedirs(resource_dir)
+                self.logger.info("已创建资源文件夹")
+            
+            # 需要移动的文件和文件夹列表
+            items_to_move = [
+                ("thirdparty", True),
+                ("c4doctane", True),
+                ("license", False),
+                ("otoy_credentials", False),
+                ("YellowStar.exe", False),
+                ("YellowStar.xdl64", False)
+            ]
+            
+            # 移动文件到资源文件夹
+            for item_name, is_folder in items_to_move:
+                source = os.path.join(current_dir, item_name)
+                target = os.path.join(resource_dir, item_name)
+                
+                # 检查源文件/文件夹是否存在
+                if os.path.exists(source):
+                    try:
+                        # 如果目标已存在，先删除
+                        if os.path.exists(target):
+                            if is_folder:
+                                shutil.rmtree(target)
+                            else:
+                                os.remove(target)
+                        
+                        # 移动文件/文件夹
+                        shutil.move(source, target)
+                        self.logger.info(f"已移动 {item_name} 到资源文件夹")
+                    except Exception as e:
+                        self.logger.error(f"移动 {item_name} 时出错: {str(e)}")
+                        return False
+                else:
+                    self.logger.warning(f"警告：{item_name} 不存在于根目录")
+            
+            return True
+            
+        except Exception as e:
+            self.logger.error(f"处理资源文件夹时发生错误: {str(e)}")
+            return False
 
-def clear_and_copy():
-    try:
-        # 确保资源文件夹结构正确
-        if not ensure_resource_folder():
-            print("资源文件夹处理失败，是否继续？(y/n): ")
-            if input().lower() != 'y':
-                return False
-        
-        # 定义需要清理的文件夹路径
-        folders_to_clear = {
-            "C4D程序插件目录": r"C:\Program Files\Maxon Cinema 4D 2023\plugins",
-            "C4D用户插件目录": r"C:\Users\Administrator\AppData\Roaming\Maxon\Maxon Cinema 4D 2023_BCDB4759\plugins",
-            "Octane缓存目录": r"C:\Users\Administrator\AppData\Local\OctaneRender",
-            "Octane配置目录": r"C:\Users\Administrator\AppData\Roaming\OctaneRender"
-        }
-        
-        # 执行清理
-        for folder_name, folder_path in folders_to_clear.items():
-            print(f"\n开始清理{folder_name}...")
-            if not clear_folder(folder_path, folder_name):
-                return False
-        
-        # 获取资源文件夹路径
-        resource_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "resources")
-        
-        # 定义需要复制的文件和文件夹
-        items_to_copy = [
-            # Octane相关文件
-            (os.path.join(resource_dir, "thirdparty"), r"C:\Users\Administrator\AppData\Local\OctaneRender", True),
-            (os.path.join(resource_dir, "license"), r"C:\Users\Administrator\AppData\Roaming\OctaneRender", False),
-            (os.path.join(resource_dir, "otoy_credentials"), r"C:\Users\Administrator\AppData\Roaming\OctaneRender", False),
+    def run_yellowstar(self):
+        """运行 YellowStar.exe"""
+        try:
+            # 获取 YellowStar.exe 的路径（从资源文件夹）
+            resource_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "resources")
+            exe_path = os.path.join(resource_dir, "YellowStar.exe")
             
-            # C4D插件相关文件
-            (os.path.join(resource_dir, "c4doctane"), r"C:\Program Files\Maxon Cinema 4D 2023\plugins", True),
-            (os.path.join(resource_dir, "YellowStar.xdl64"), r"C:\Program Files\Maxon Cinema 4D 2023\plugins", False)
-        ]
-        
-        # 执行复制
-        for source, target, is_folder in items_to_copy:
-            print(f"\n开始复制 {os.path.basename(source)}...")
-            if not copy_items(source, target, is_folder):
+            if not os.path.exists(exe_path):
+                self.logger.error("错误：未找到 YellowStar.exe")
                 return False
-        
-        # 检查并复制启动项
-        startup_file = os.path.join(resource_dir, "YellowStar.exe")
-        if os.path.exists(startup_file):
-            if not check_and_copy_startup():
-                return False
-        else:
-            print("警告：未找到 YellowStar.exe")
+                
+            self.logger.info("\n正在启动 YellowStar.exe...")
+            # 使用 subprocess 运行程序
+            subprocess.Popen(exe_path)
+            self.logger.info("YellowStar.exe 已启动")
+            return True
+            
+        except Exception as e:
+            self.logger.error(f"启动 YellowStar.exe 时发生错误: {str(e)}")
             return False
+
+    def run(self):
+        """执行主要安装流程"""
+        try:
+            self.logger.info("开始执行安装流程...")
             
-        # 在所有操作成功完成后运行 YellowStar.exe
-        if not run_yellowstar():
+            # 确保资源文件夹结构正确
+            if not self.ensure_resource_folder():
+                return False
+            
+            # 清理文件夹
+            for folder_name, folder_path in FOLDERS.items():
+                if not self.clear_folder(folder_path, folder_name):
+                    return False
+            
+            # 复制文件
+            for item in COPY_ITEMS:
+                if not self.copy_items(item["source"], item["target"], item["is_folder"]):
+                    return False
+            
+            # 设置启动项
+            if not self.check_and_copy_startup():
+                return False
+            
+            # 运行程序
+            if not self.run_yellowstar():
+                return False
+            
+            self.logger.info("安装流程成功完成！")
+            return True
+            
+        except Exception as e:
+            self.logger.error(f"安装过程中发生错误: {str(e)}")
             return False
-            
-        return True
-        
-    except Exception as e:
-        print(f"执行过程中发生错误: {str(e)}")
-        return False
 
 def main():
-    print("即将执行以下操作：")
-    print("1. 清理 C4D程序插件目录")
-    print("2. 清理 C4D用户插件目录")
-    print("3. 清理 Octane缓存目录")
-    print("4. 清理 Octane配置目录")
-    print("5. 复制 thirdparty 文件夹到 Octane缓存目录")
-    print("6. 复制 license 和 otoy_credentials 文件到 Octane配置目录")
-    print("7. 复制 c4doctane 文件夹到 C4D插件目录")
-    print("8. 复制 YellowStar.xdl64 到 C4D插件目录")
-    print("9. 检查并设置启动项")
-    print("10. 运行 YellowStar.exe")
+    print("="*50)
+    print("OCAUTO")
+    print("="*50)
     
-    # 添加确认提示
-    confirm = input("\n确定要执行以上操作吗？(y/n): ")
-    if confirm.lower() == 'y':
-        print("\n开始执行操作...\n")
-        if clear_and_copy():
-            print("\n" + "="*50)
-            print("所有操作已成功完成！")
-            print("="*50)
-            input("\n按回车键退出...")
-        else:
-            print("\n" + "="*50)
-            print("操作过程中出现错误，请检查以上提示信息！")
-            print("="*50)
-            input("\n按回车键退出...")
-    else:
+    # 显示操作列表
+    print("\n即将执行以下操作：")
+    for i, folder in enumerate(FOLDERS.keys(), 1):
+        print(f"{i}. 清理 {folder}")
+    print(f"{len(FOLDERS) + 1}. 复制所需文件")
+    print(f"{len(FOLDERS) + 2}. 设置启动项")
+    print(f"{len(FOLDERS) + 3}. 运行 Yellow Star")
+    
+    # 确认执行
+    if input("\n确定要执行以上操作吗？(y/n): ").lower() != 'y':
         print("操作已取消")
         input("\n按回车键退出...")
+        return
+    
+    # 执行安装
+    installer = YellowStarInstaller()
+    if installer.run():
+        print("\n" + "="*50)
+        print("安装成功完成！")
+        print("="*50)
+    else:
+        print("\n" + "="*50)
+        print("安装过程中出现错误，请查看日志文件！")
+        print("="*50)
+    
+    input("\n按回车键退出...")
 
 if __name__ == "__main__":
     main()
