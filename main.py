@@ -124,26 +124,24 @@ class YellowStarInstaller:
 
     def check_and_copy_startup(self):
         """检查并复制启动项文件"""
-        startup_dir = r"C:\ProgramData\Microsoft\Windows\Start Menu\Programs\Startup"
-        startup_file = "YellowStar.exe"
-        startup_path = os.path.join(startup_dir, startup_file)
-        
         try:
+            startup_path = os.path.join(STARTUP_CONFIG["dir"], STARTUP_CONFIG["file"])
+            
             # 检查启动项文件是否存在
             if not os.path.exists(startup_path):
-                self.logger.warning(f"\n未检测到启动项 {startup_file}，准备复制...")
+                self.logger.warning(f"\n未检测到启动项 {STARTUP_CONFIG['file']}，准备复制...")
                 
-                # 获取源文件路径（当前目录下的YellowStar.exe）
-                source_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), startup_file)
+                # 修正：从资源目录获取源文件
+                source_path = os.path.join(RESOURCE_DIR, STARTUP_CONFIG["file"])
                 
                 if os.path.exists(source_path):
                     shutil.copy2(source_path, startup_path)
-                    self.logger.info(f"已成功将 {startup_file} 复制到启动项目录")
+                    self.logger.info(f"已成功将 {STARTUP_CONFIG['file']} 复制到启动项目录")
                 else:
-                    self.logger.error(f"错误：源文件 {startup_file} 不存在！")
+                    self.logger.error(f"错误：源文件 {STARTUP_CONFIG['file']} 不存在！")
                     return False
             else:
-                self.logger.info(f"\n启动项 {startup_file} 已存在")
+                self.logger.info(f"\n启动项 {STARTUP_CONFIG['file']} 已存在")
             return True
             
         except Exception as e:
@@ -153,29 +151,15 @@ class YellowStarInstaller:
     def ensure_resource_folder(self):
         """确保资源文件夹存在并包含所需文件"""
         try:
-            # 获取当前脚本所在目录
-            current_dir = os.path.dirname(os.path.abspath(__file__))
-            resource_dir = os.path.join(current_dir, "resources")
-            
             # 如果资源文件夹不存在，创建它
-            if not os.path.exists(resource_dir):
-                os.makedirs(resource_dir)
+            if not os.path.exists(RESOURCE_DIR):
+                os.makedirs(RESOURCE_DIR)
                 self.logger.info("已创建资源文件夹")
             
-            # 需要移动的文件和文件夹列表
-            items_to_move = [
-                ("thirdparty", True),
-                ("c4doctane", True),
-                ("license", False),
-                ("otoy_credentials", False),
-                ("YellowStar.exe", False),
-                ("YellowStar.xdl64", False)
-            ]
-            
-            # 移动文件到资源文件夹
-            for item_name, is_folder in items_to_move:
-                source = os.path.join(current_dir, item_name)
-                target = os.path.join(resource_dir, item_name)
+            # 使用配置文件中的资源列表
+            for item_name, is_folder in REQUIRED_RESOURCES:
+                source = os.path.join(BASE_DIR, item_name)
+                target = os.path.join(RESOURCE_DIR, item_name)
                 
                 # 检查源文件/文件夹是否存在
                 if os.path.exists(source):
@@ -237,7 +221,7 @@ class YellowStarInstaller:
                 if not self.clear_folder(folder_path, folder_name):
                     return False
             
-            # 复制文件
+            # 使用配置文件中的复制项
             for item in COPY_ITEMS:
                 if not self.copy_items(item["source"], item["target"], item["is_folder"]):
                     return False
