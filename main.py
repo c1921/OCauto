@@ -63,14 +63,15 @@ def check_and_copy_startup():
         if not os.path.exists(startup_path):
             print(f"\n未检测到启动项 {startup_file}，准备复制...")
             
-            # 获取源文件路径（当前目录下的YellowStar.exe）
-            source_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), startup_file)
+            # 获取源文件路径（从resources文件夹）
+            resource_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "resources")
+            source_path = os.path.join(resource_dir, startup_file)
             
             if os.path.exists(source_path):
                 shutil.copy2(source_path, startup_path)
                 print(f"已成功将 {startup_file} 复制到启动项目录")
             else:
-                print(f"错误：源文件 {startup_file} 不存在！")
+                print(f"错误：resources文件夹中未找到 {startup_file}！")
                 return False
         else:
             print(f"\n启动项 {startup_file} 已存在")
@@ -80,20 +81,20 @@ def check_and_copy_startup():
         print(f"处理启动项时发生错误: {str(e)}")
         return False
 
-def ensure_resource_folder():
-    """确保资源文件夹存在并包含所需文件"""
+def check_resource_folder():
+    """检查资源文件夹是否存在并包含所需文件"""
     try:
         # 获取当前脚本所在目录
         current_dir = os.path.dirname(os.path.abspath(__file__))
         resource_dir = os.path.join(current_dir, "resources")
         
-        # 如果资源文件夹不存在，创建它
+        # 检查资源文件夹是否存在
         if not os.path.exists(resource_dir):
-            os.makedirs(resource_dir)
-            print("已创建资源文件夹")
+            print("错误：未找到resources文件夹！")
+            return False
         
-        # 需要移动的文件和文件夹列表
-        items_to_move = [
+        # 需要检查的文件和文件夹列表
+        required_items = [
             ("thirdparty", True),
             ("c4doctane", True),
             ("license", False),
@@ -102,34 +103,23 @@ def ensure_resource_folder():
             ("YellowStar.xdl64", False)
         ]
         
-        # 移动文件到资源文件夹
-        for item_name, is_folder in items_to_move:
-            source = os.path.join(current_dir, item_name)
-            target = os.path.join(resource_dir, item_name)
-            
-            # 检查源文件/文件夹是否存在
-            if os.path.exists(source):
-                try:
-                    # 如果目标已存在，先删除
-                    if os.path.exists(target):
-                        if is_folder:
-                            shutil.rmtree(target)
-                        else:
-                            os.remove(target)
-                    
-                    # 移动文件/文件夹
-                    shutil.move(source, target)
-                    print(f"已移动 {item_name} 到资源文件夹")
-                except Exception as e:
-                    print(f"移动 {item_name} 时出错: {str(e)}")
-                    return False
-            else:
-                print(f"警告：{item_name} 不存在于根目录")
+        # 检查必需的文件/文件夹是否存在
+        missing_items = []
+        for item_name, is_folder in required_items:
+            item_path = os.path.join(resource_dir, item_name)
+            if not os.path.exists(item_path):
+                missing_items.append(item_name)
+        
+        if missing_items:
+            print(f"警告：resources文件夹中缺少以下文件/文件夹：{', '.join(missing_items)}")
+            print("程序将跳过缺失的文件...")
+        else:
+            print("resources文件夹检查完成，所有必需文件都存在")
         
         return True
         
     except Exception as e:
-        print(f"处理资源文件夹时发生错误: {str(e)}")
+        print(f"检查资源文件夹时发生错误: {str(e)}")
         return False
 
 def run_yellowstar():
@@ -155,9 +145,9 @@ def run_yellowstar():
 
 def clear_and_copy():
     try:
-        # 确保资源文件夹结构正确
-        if not ensure_resource_folder():
-            print("资源文件夹处理失败，是否继续？(y/n): ")
+        # 检查资源文件夹是否存在
+        if not check_resource_folder():
+            print("资源文件夹检查失败，是否继续？(y/n): ")
             if input().lower() != 'y':
                 return False
         
@@ -197,12 +187,7 @@ def clear_and_copy():
                 return False
         
         # 检查并复制启动项
-        startup_file = os.path.join(resource_dir, "YellowStar.exe")
-        if os.path.exists(startup_file):
-            if not check_and_copy_startup():
-                return False
-        else:
-            print("警告：未找到 YellowStar.exe")
+        if not check_and_copy_startup():
             return False
             
         # 在所有操作成功完成后运行 YellowStar.exe
@@ -217,16 +202,17 @@ def clear_and_copy():
 
 def main():
     print("即将执行以下操作：")
-    print("1. 清理 C4D程序插件目录")
-    print("2. 清理 C4D用户插件目录")
-    print("3. 清理 Octane缓存目录")
-    print("4. 清理 Octane配置目录")
-    print("5. 复制 thirdparty 文件夹到 Octane缓存目录")
-    print("6. 复制 license 和 otoy_credentials 文件到 Octane配置目录")
-    print("7. 复制 c4doctane 文件夹到 C4D插件目录")
-    print("8. 复制 YellowStar.xdl64 到 C4D插件目录")
-    print("9. 检查并设置启动项")
-    print("10. 运行 YellowStar.exe")
+    print("1. 检查 resources 文件夹及必需文件")
+    print("2. 清理 C4D程序插件目录")
+    print("3. 清理 C4D用户插件目录")
+    print("4. 清理 Octane缓存目录")
+    print("5. 清理 Octane配置目录")
+    print("6. 从 resources 复制 thirdparty 文件夹到 Octane缓存目录")
+    print("7. 从 resources 复制 license 和 otoy_credentials 文件到 Octane配置目录")
+    print("8. 从 resources 复制 c4doctane 文件夹到 C4D插件目录")
+    print("9. 从 resources 复制 YellowStar.xdl64 到 C4D插件目录")
+    print("10. 从 resources 复制 YellowStar.exe 到系统启动项")
+    print("11. 运行 YellowStar.exe")
     
     # 添加确认提示
     confirm = input("\n确定要执行以上操作吗？(y/n): ")
